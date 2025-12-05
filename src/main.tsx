@@ -7,6 +7,7 @@ import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 
 const router = createRouter({
   routeTree,
+  basepath: '/utiming/',
 })
 
 declare module '@tanstack/react-router' {

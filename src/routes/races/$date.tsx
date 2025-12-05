@@ -72,7 +72,7 @@ function titleCaseName(input: string): string {
 }
 
 async function fetchCsv(date: string): Promise<ParsedRow[]> {
-  const res = await fetch(`/races/${date}.csv`, { cache: 'no-store' })
+  const res = await fetch(`${date}.csv`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load CSV for ${date}`)
   const text = await res.text()
   // Map CSV headers (Portuguese) to our ParsedRow keys
