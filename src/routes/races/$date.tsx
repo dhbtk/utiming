@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { Container, StyledH1 } from '../../components/layout.tsx'
 import styled from 'styled-components'
 import { CaretDownFilled, CaretUpFilled, DownloadOutlined } from '@ant-design/icons'
+import { compare, formatmmssttt, renderYmd } from '../../utils/datetime.ts'
 
 interface ParsedRow {
   pos: string
@@ -124,51 +125,6 @@ export const Route = createFileRoute('/races/$date')({
   component: RaceTablePage,
 })
 
-const compare = (numA: number, numB: number) => {
-  if (numA === numB) return 0
-  return numA > numB ? 1 : -1
-}
-
-const formatmmssttt = (number: number) => {
-  let output = ''
-  if (number >= 60) {
-    const minutes = Math.floor(number / 60)
-    output += `${minutes}:`
-    number -= minutes * 60
-  }
-  if (number >= 10) {
-    output += `${number.toFixed(3)}`
-  } else {
-    output += `0${number.toFixed(3)}`
-  }
-  return output
-}
-
-const renderYmd = (date: string) => {
-  // parse YYYYMMDD into 'DD de mês de YYYY' (pt-BR)
-  if (!date) return ''
-  const m = /^(\d{4})(\d{2})(\d{2})$/.exec(date.trim())
-  if (!m) return date
-  const [, y, mm, dd] = m
-  const months = [
-    'janeiro',
-    'fevereiro',
-    'março',
-    'abril',
-    'maio',
-    'junho',
-    'julho',
-    'agosto',
-    'setembro',
-    'outubro',
-    'novembro',
-    'dezembro',
-  ]
-  const idx = Number(mm) - 1
-  if (isNaN(idx) || idx < 0 || idx > 11) return date
-  return `${dd} de ${months[idx]} de ${y}`
-}
-
 function RaceTablePage() {
   const { rows, date } = Route.useLoaderData() as { rows: ParsedRow[]; date: string }
 
@@ -222,7 +178,14 @@ function RaceTablePage() {
     }
     return compare(parseFloat(a), parseFloat(b))
   }
-  const columns = [
+  const hasSectors = rows.some(
+    (r) =>
+      (r.sector1 && r.sector1.trim() !== '') ||
+      (r.sector2 && r.sector2.trim() !== '') ||
+      (r.sector3 && r.sector3.trim() !== '')
+  )
+
+  const columns: ColumnDef<ParsedRow, any>[] = [
     columnHelper.accessor('pos', {
       header: 'Pos.',
     }),
@@ -268,15 +231,37 @@ function RaceTablePage() {
       id: 'totalTime',
       cell: ({ row }) => row.original.totalTime,
     }),
-    columnHelper.accessor(row => parseFloat(row.sector1), { header: 'Setor 1', cell: ({ row }) => parseFloat(row.original.sector1).toFixed(3) }),
-    columnHelper.accessor(row => parseFloat(row.sector2), { header: 'Setor 2', cell: ({ row }) => parseFloat(row.original.sector2).toFixed(3) }),
-    columnHelper.accessor(row => parseFloat(row.sector3), { header: 'Setor 3', cell: ({ row }) => parseFloat(row.original.sector3).toFixed(3) }),
-    columnHelper.accessor(row => parseFloat(row.sector1) + parseFloat(row.sector2) + parseFloat(row.sector3), {
-      header: 'Volta ideal',
-      id: 'idealLap',
-      cell: ({ row }) => formatmmssttt(parseFloat(row.original.sector1) + parseFloat(row.original.sector2) + parseFloat(row.original.sector3)),
-    })
   ]
+
+  if (hasSectors) {
+    columns.push(
+      columnHelper.accessor((row) => parseFloat(row.sector1), {
+        header: 'Setor 1',
+        cell: ({ row }) => parseFloat(row.original.sector1).toFixed(3),
+      }),
+      columnHelper.accessor((row) => parseFloat(row.sector2), {
+        header: 'Setor 2',
+        cell: ({ row }) => parseFloat(row.original.sector2).toFixed(3),
+      }),
+      columnHelper.accessor((row) => parseFloat(row.sector3), {
+        header: 'Setor 3',
+        cell: ({ row }) => parseFloat(row.original.sector3).toFixed(3),
+      }),
+      columnHelper.accessor(
+        (row) => parseFloat(row.sector1) + parseFloat(row.sector2) + parseFloat(row.sector3),
+        {
+          header: 'Volta ideal',
+          id: 'idealLap',
+          cell: ({ row }) =>
+            formatmmssttt(
+              parseFloat(row.original.sector1) +
+                parseFloat(row.original.sector2) +
+                parseFloat(row.original.sector3)
+            ),
+        }
+      )
+    )
+  }
 
   return (
     <Container>
