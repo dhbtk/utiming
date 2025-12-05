@@ -13,7 +13,7 @@ import {
 import { useState } from 'react'
 import { Container, StyledH1 } from '../../components/layout.tsx'
 import styled from 'styled-components'
-import { CaretDownFilled, CaretUpFilled } from '@ant-design/icons'
+import { CaretDownFilled, CaretUpFilled, DownloadOutlined } from '@ant-design/icons'
 
 interface ParsedRow {
   pos: string
@@ -286,11 +286,38 @@ function RaceTablePage() {
         <Link to="/races">Baterias</Link>
         <small>/</small>
         <span>Bateria de {renderYmd(date)}</span>
+        <DownloadButton className="unstyled" href={`${date}.csv`}>
+          <DownloadOutlined/>
+          Baixar CSV
+        </DownloadButton>
       </StyledH1>
       <DataTable columns={columns} data={rows} />
     </Container>
   )
 }
+
+const DownloadButton = styled.a`
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  margin-left: auto;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease-in-out;
+  
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.5);
+  }
+`
 
 const StyledTable = styled.table`
   margin-left: calc(-1rem - 1px);

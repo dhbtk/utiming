@@ -18,12 +18,12 @@ export const StyledH1 = styled.h1`
   gap: 0.75rem;
   font-family: "Russo One", sans-serif;
 
-  a, small {
+  a:not(.unstyled), small {
     font-size: 0.75rem;
     color: rgba(126, 126, 126, 0.71);
   }
   
-  a:hover {
+  a:not(.unstyled):hover {
     text-decoration: underline;
   }
 `
