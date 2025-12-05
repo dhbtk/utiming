@@ -11,8 +11,9 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 import { useState } from 'react'
-import { Container } from '../../components/layout.tsx'
+import { Container, StyledH1 } from '../../components/layout.tsx'
 import styled from 'styled-components'
+import { CaretDownFilled, CaretUpFilled } from '@ant-design/icons'
 
 interface ParsedRow {
   pos: string
@@ -72,7 +73,9 @@ function titleCaseName(input: string): string {
 }
 
 async function fetchCsv(date: string): Promise<ParsedRow[]> {
-  const res = await fetch(`${date}.csv`, { cache: 'no-store' })
+  // Use absolute path with Vite base so it works both after redirects and on hard refresh
+  const url = `${import.meta.env.BASE_URL}races/${date}.csv`
+  const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Failed to load CSV for ${date}`)
   const text = await res.text()
   // Map CSV headers (Portuguese) to our ParsedRow keys
@@ -220,16 +223,40 @@ function RaceTablePage() {
     return compare(parseFloat(a), parseFloat(b))
   }
   const columns = [
-    columnHelper.accessor('pos', {}),
-    columnHelper.accessor('number', {}),
-    columnHelper.accessor('name', {}),
+    columnHelper.accessor('pos', {
+      header: 'Pos.',
+    }),
+    columnHelper.accessor('number', {
+      header: 'Num.',
+    }),
+    columnHelper.accessor('name', {
+      header: 'Nome'
+    }),
     columnHelper.accessor('laps', {
+      header: 'Voltas',
     }),
     columnHelper.accessor('diff', {
-      sortingFn: lapSortingFn
+      header: 'Tempo',
+      sortingFn: lapSortingFn,
+      cell: ({ row }) => {
+        if (row.original.diff === '') {
+          return row.original.totalTime;
+        }
+        return '+' + row.original.diff;
+      }
     }),
     columnHelper.accessor('gap', {
-      sortingFn: lapSortingFn
+      header: 'Delta',
+      sortingFn: lapSortingFn,
+      cell: ({ row }) => {
+        if (row.original.diff === '') {
+          return '--'
+        }
+        if (row.original.gap.toLocaleLowerCase().includes('lap')) {
+          return '+' + row.original.gap
+        }
+        return '+' + parseFloat(row.original.gap).toFixed(3)
+      }
     }),
     columnHelper.accessor(row => parseTimeToMillis(row.bestTime), {
       header: 'Melhor volta',
@@ -241,9 +268,9 @@ function RaceTablePage() {
       id: 'totalTime',
       cell: ({ row }) => row.original.totalTime,
     }),
-    columnHelper.accessor(row => parseFloat(row.sector1), { header: 'Setor 1' }),
-    columnHelper.accessor(row => parseFloat(row.sector2), { header: 'Setor 2' }),
-    columnHelper.accessor(row => parseFloat(row.sector3), { header: 'Setor 3' }),
+    columnHelper.accessor(row => parseFloat(row.sector1), { header: 'Setor 1', cell: ({ row }) => parseFloat(row.original.sector1).toFixed(3) }),
+    columnHelper.accessor(row => parseFloat(row.sector2), { header: 'Setor 2', cell: ({ row }) => parseFloat(row.original.sector2).toFixed(3) }),
+    columnHelper.accessor(row => parseFloat(row.sector3), { header: 'Setor 3', cell: ({ row }) => parseFloat(row.original.sector3).toFixed(3) }),
     columnHelper.accessor(row => parseFloat(row.sector1) + parseFloat(row.sector2) + parseFloat(row.sector3), {
       header: 'Volta ideal',
       id: 'idealLap',
@@ -265,26 +292,6 @@ function RaceTablePage() {
   )
 }
 
-const StyledH1 = styled.h1`
-  font-size: 1.5rem;
-  margin: 0;
-  padding: 0;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-family: "Russo One", sans-serif;
-
-  a, small {
-    font-size: 0.75rem;
-    color: rgba(126, 126, 126, 0.71);
-  }
-  
-  a:hover {
-    text-decoration: underline;
-  }
-`
-
 const StyledTable = styled.table`
   margin-left: calc(-1rem - 1px);
   width: calc(100% + 2rem + 2px);
@@ -304,13 +311,20 @@ const StyledTable = styled.table`
     font-weight: 400;
     border-bottom: 1px solid rgba(255, 255, 255, 0.32);
     border-right: 1px solid rgba(255, 255, 255, 0.32);
-    
+
     &:last-child {
       border-right: none;
     }
 
     &.name {
       text-align: left;
+    }
+    
+    span {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      justify-content: space-between;
     }
   }
 
@@ -336,7 +350,7 @@ const StyledTable = styled.table`
     font-weight: bold;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     border-right: 1px solid rgba(255, 255, 255, 0.12);
-    
+
     &:last-child {
       border-right: none;
     }
@@ -345,11 +359,20 @@ const StyledTable = styled.table`
       text-align: left;
       width: 100%;
     }
+
+    &.sorted {
+      background: rgba(159, 75, 15, 0.41);
+      color: white;
+      font-weight: bold;
+    }
   }
 `
 
 function DataTable<T extends object>({ columns, data }: { columns: ColumnDef<T>[]; data: T[] }) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([{
+    id: 'pos',
+    desc: false,
+  }])
   const table = useReactTable({
     data,
     columns,
@@ -378,7 +401,7 @@ function DataTable<T extends object>({ columns, data }: { columns: ColumnDef<T>[
                     {h.isPlaceholder ? null : (
                       <span>
                         {flexRender(h.column.columnDef.header, h.getContext())}
-                        {sortDir === 'asc' ? ' ▲' : sortDir === 'desc' ? ' ▼' : ''}
+                        {sortDir === 'asc' ? <CaretUpFilled/> : sortDir === 'desc' ? <CaretDownFilled/> : <CaretDownFilled style={{ opacity: 0.25 }}/>}
                       </span>
                     )}
                   </th>
@@ -391,7 +414,7 @@ function DataTable<T extends object>({ columns, data }: { columns: ColumnDef<T>[
           {table.getRowModel().rows.map((r) => (
             <tr key={r.id}>
               {r.getVisibleCells().map((c) => (
-                <td key={c.id} className={c.column.id}>
+                <td key={c.id} className={(c.column.getIsSorted() ? 'sorted ' : '') + c.column.id}>
                   {flexRender(c.column.columnDef.cell, c.getContext())}
                 </td>
               ))}

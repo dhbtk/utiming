@@ -1,21 +1,29 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { Container, StyledH1 } from '../../components/layout.tsx'
+import styled from 'styled-components'
 
-async function fetchIndex(): Promise<string[]> {
-  const res = await fetch('/races/index.json', { cache: 'no-store' })
-  if (!res.ok) throw new Error('Failed to load races index')
-  return (await res.json()) as string[]
-}
+declare const __RACES_INDEX__: string[]
 
 export const Route = createFileRoute('/races/')({
-  loader: () => fetchIndex(),
+  loader: () => __RACES_INDEX__,
   component: RacesIndex,
 })
+
+const DateList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`
 
 function RacesIndex() {
   const dates = Route.useLoaderData()
   return (
-    <div>
-      <h1>Races</h1>
+    <Container>
+      <StyledH1>
+        <Link to="/">uTiming</Link>
+        <small>/</small>
+        <span>Baterias</span>
+      </StyledH1>
       {!dates.length ? (
         <p>No races available.</p>
       ) : (
@@ -33,6 +41,6 @@ function RacesIndex() {
             ))}
         </ul>
       )}
-    </div>
+    </Container>
   )
 }
